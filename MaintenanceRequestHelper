@@ -1,0 +1,30 @@
+public with sharing class MaintenanceRequestHelper {
+    
+    public static void updateWorkOrders() {
+        List<Case> cs = [select id, type, status, Product__c, Vehicle__c, Equipment__c from Case ];
+        List<Product2> pr = [select id, Maintenance_Cycle__c from product2 ];
+        List<Case> csLst = new List<case>();
+        for(Case ca : cs){
+            if(ca.Type == 'Repair' || ca.Type == 'Routine Maintenance' && ca.Status == 'Closed'){
+                Case cas = new Case();
+                cas.Equipment__c = ca.Equipment__c;
+                cas.Product__c = ca.Product__c;
+                cas.Vehicle__c = ca.Vehicle__c;
+                cas.Type = 'Routine Maintenance';
+                cas.Subject = 'Routine Maintenance';
+                cas.Date_Reported__c = system.today();
+                Integer days =0;
+                for(Product2 p : pr){
+                    if(ca.Equipment__c == p.Id){
+                        days = p.Maintenance_Cycle__c.intValue();
+                    }
+                } 
+                cas.Date_Due__c = system.today().addDays(days);
+                csLst.add(cas);
+            }
+        }
+        insert csLst;
+        
+    }        
+    
+}
