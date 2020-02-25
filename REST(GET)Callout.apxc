@@ -1,0 +1,49 @@
+public class getProfitAndLossReport {
+
+private static Quickbooks_Token_Info__c AccessToken;
+
+@future(callout=true)
+public static void getPAndLReport(){
+
+Http http = new Http();
+
+String endDate = System.today().format();
+
+Boolean isSandbox = [SELECT id , isSandbox FROM organization LIMIT 1].isSandbox;
+String endPoint;
+if(isSandbox){
+endPoint='https://sandbox-quickbooks.api.intuit.com/v3/company/'+Label.Company_Id_Quicbook+'/reports/ProfitAndLoss?start_date=2019-04-01&end_date=2019-11-27&accounting_method=Cash&minorversion=41';
+}else{
+endPoint='https://quickbooks.api.intuit.com/v3/company/'+Label.Company_Id_Quicbook+'/reports/ProfitAndLoss?start_date=2019-04-01&end_date=2019-11-27&accounting_method=Cash&minorversion=41';
+}
+HttpRequest req = new HttpRequest();
+
+AccessToken = getAccessToken();
+
+req.setEndpoint(endPoint);
+req.setMethod('GET');
+req.setHeader('Accept', 'application/json');
+req.setHeader('Authorization' , 'Bearer '+AccessToken.Access_Token__c );
+HttpResponse res;
+
+if(!Test.isRunningTest()){
+res = http.send(req);
+}else{
+Test.setMock(HttpCalloutMock.class, new MockHttpResponseGenerator());
+res = CalloutClass.getInfoFromExternalService();
+}
+system.debug(res.getBody());
+String resParams = res.getBody();
+system.debug(resParams);
+
+}
+
+public static Quickbooks_Token_Info__c getAccessToken(){
+Quickbooks_Token_Info__c AccessToken = [
+SELECT Access_Token__c, Refresh_Token__c
+FROM Quickbooks_Token_Info__c
+WHERE Name = 'QuickBooks Setting Info' LIMIT 1];
+return AccessToken;
+}
+
+}
