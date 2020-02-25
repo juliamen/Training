@@ -1,0 +1,55 @@
+public with sharing class WarehouseCalloutService {
+    
+    private static final String WAREHOUSE_URL = 'https://th-superbadge-apex.herokuapp.com/equipment';
+    
+    @future(callout=true)
+    public static void runWarehouseEquipmentSync() {
+        
+        Http http = new Http();
+        HttpRequest request = new HttpRequest();
+        request.setEndpoint('https://th-superbadge-apex.herokuapp.com/equipment');
+        request.setMethod('GET');
+        HttpResponse response = http.send(request);
+        
+        // If the request is successful, parse the JSON response.
+        if (response.getStatusCode() == 200) {
+            List<Product2> equipments = new List<Product2>();
+            
+            //field returned by JSON 
+            equipments = [select id, Replacement_Part__c, Cost__c, Current_Inventory__c,
+                          Lifespan_Months__c, Name, Maintenance_Cycle__c, Warehouse_SKU__c from Product2]; 
+            
+            // Deserialize the JSON string List into collections of primitive data types.
+            List<Object> resList = (List<Object>)JSON.deserializeUntyped(response.getBody());
+            for(Object o : resList){
+                Map<String, Object> results = (Map<String, Object>)o;
+                
+                Product2 equipment = new Product2();
+                
+                Boolean replacementPart = true;
+                Decimal cost = (Decimal)results.get('cost');
+                Decimal currentInventory = (Decimal)results.get('quantity');
+                Decimal lifespan = (Decimal)results.get('lifespan');
+                Decimal maintenancePeriod = (Decimal)results.get('maintenanceperiod');
+                String SKU = (String)results.get('sku');
+                String name = (String)results.get('name');
+                
+                //set field
+                equipment.Warehouse_SKU__c = SKU;
+                equipment.Cost__c = cost;
+                equipment.Current_Inventory__c = currentInventory;
+                equipment.Replacement_Part__c = replacementPart;
+                equipment.Lifespan_Months__c = lifespan;
+                equipment.Maintenance_Cycle__c = maintenancePeriod;
+                equipment.Name = name;
+                equipments.add(equipment);
+                
+                //if list not empty Use the warehouse SKU as the external ID to identify which equipment records to update
+                if(equipments != null && equipments.size()>0) equipment.Warehouse_SKU__c = equipments[0].Warehouse_SKU__c;
+            }
+            
+            upsert equipments;
+        }
+        
+    }
+}
