@@ -1,0 +1,18 @@
+public with sharing class WarehouseSyncSchedule implements Schedulable, Database.AllowsCallouts  {
+    // update Salesforce data during off hours (at 1:00 AM PST) daily
+    public void execute(SchedulableContext ctx) {
+        WarehouseCalloutService.runWarehouseEquipmentSync();
+    }
+}
+
+
+@isTest
+public class WarehouseSyncScheduleTest {
+    public static String CRON_Exp = '0 0 1 * 2 ? 2020';
+    static testmethod void testScheduledJob() {
+        Test.startTest();
+        Test.setMock(HttpCalloutMock.class, new  WarehouseCalloutServiceMock());
+        String jobId = system.schedule('test', CRON_Exp, new WarehouseSyncSchedule() );
+        Test.stopTest();
+    } 
+}
