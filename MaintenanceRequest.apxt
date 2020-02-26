@@ -1,0 +1,12 @@
+trigger MaintenanceRequest on Case (before update, after update) {
+     List<Case> cs = [select id, type, status, Product__c, Subject, Vehicle__c, Equipment__c from Case where status ='closed'];
+     List<Case> cse = new List<Case>();
+    if(Trigger.isAfter && Trigger.isUpdate){
+        for(Case c : trigger.new){
+            if(c.Type == 'Repair' || c.Type == 'Routine Maintenance' && c.Status == 'Closed'){
+                cse.add(c);
+            }
+        }
+    MaintenanceRequestHelper.updateWorkOrders(cse);
+    }
+}
