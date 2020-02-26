@@ -1,0 +1,24 @@
+@isTest
+public class WarehouseCalloutServiceMock implements HttpCalloutMock{
+    // implement http mock callout
+    public HTTPResponse respond(HttpRequest request){
+        HttpResponse response = new HttpResponse();
+        response.setHeader('Content-Type', 'application/jon');
+        response.setBody('[{"_id":"55d66226726b611100aaf74c","replacement":true,"quantity":200,"name":"Ball Valve 5 cm", "maintenanceperiod":0,"lifespan":0,"cost":30,"sku":"100014"}]');
+        response.setStatusCode(200);
+        return response;
+    }
+}
+
+
+@IsTest
+private class WarehouseCalloutServiceTest {
+    // implement your mock callout test here
+    @isTest static void testGetCallout(){
+        
+       Test.setMock(HttpCalloutMock.class, new  WarehouseCalloutServiceMock());
+       Test.startTest();
+        WarehouseCalloutService.runWarehouseEquipmentSync();
+        Test.stopTest();
+    }
+}
