@@ -1,0 +1,32 @@
+public with sharing class FindUser {
+    
+    public class wrapper{
+        public string Username {get; set;}
+        public String ProfileName {get; set;}
+        public Boolean EmptyPhone {get; set;}
+        public String AccountName {get; set;}
+    }
+    
+	@AuraEnabled
+    public static wrapper currentUser(){
+        Wrapper wr = new Wrapper();
+        User us= [select id, Name, profile.name from User where id =: userInfo.getUserId()];
+        system.debug('user'+ us);
+        wr.Username = us.Name;
+        wr.ProfileName = us.profile.name;
+        //if user is a community user display account name
+        if(wr.ProfileName ==  'Customer Community User'){
+            Contact con = [select id, phone, account.name from contact where id=: us.Id];
+            system.debug(con);
+            wr.AccountName = con.Account.Name;
+            //check if phone field is blank
+            if(con.phone == '' || con.phone == null){
+                wr.EmptyPhone = true;
+            } else {
+                 wr.EmptyPhone = false;
+            }
+        }
+		return wr;
+    }
+    
+}
