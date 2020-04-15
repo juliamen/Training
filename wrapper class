@@ -1,32 +1,46 @@
 public with sharing class FindUser {
     
-    public class wrapper{
-        public string Username {get; set;}
-        public String ProfileName {get; set;}
-        public Boolean EmptyPhone {get; set;}
-        public String AccountName {get; set;}
-    }
-    
-	@AuraEnabled
+    @AuraEnabled
     public static wrapper currentUser(){
-        Wrapper wr = new Wrapper();
-        User us= [select id, Name, profile.name from User where id =: userInfo.getUserId()];
+        wrapper wr = new wrapper();
+        //find user name and profile type of logged in user
+        User us= [select id, Name, ContactID, profile.name from User where id =: userInfo.getUserId()];
         system.debug('user'+ us);
         wr.Username = us.Name;
         wr.ProfileName = us.profile.name;
-        //if user is a community user display account name
-        if(wr.ProfileName ==  'Customer Community User'){
-            Contact con = [select id, phone, account.name from contact where id=: us.Id];
-            system.debug(con);
-            wr.AccountName = con.Account.Name;
-            //check if phone field is blank
-            if(con.phone == '' || con.phone == null){
-                wr.EmptyPhone = true;
+        system.debug(wr.Username  + wr.ProfileName );
+        
+        //check if user is community user and if phone field is blank
+        if(us.ContactId != null ){
+            Contact con = [select id, phone, account.name from contact where id=: us.ContactID];
+            //display account name if community user
+            if(us.profile.name ==  'Customer Community User'){
+                wr.CommunityUs = true;
+                wr.AccountName = con.Account.Name;
+            }else {
+                wr.CommunityUs = false;
+            }
+            if(con.phone != null ){
+                wr.emptyPhone = false;
             } else {
-                 wr.EmptyPhone = false;
+                wr.emptyPhone = true;
             }
         }
-		return wr;
+        system.debug('wr'+ wr);
+        return wr;
+    }
+    
+    public class wrapper{
+        @AuraEnabled
+        public string Username {get; set;}
+        @AuraEnabled
+        public String ProfileName {get; set;}
+        @AuraEnabled
+        public Boolean CommunityUs {get; set;}
+        @AuraEnabled
+        public Boolean emptyPhone {get; set;}
+        @AuraEnabled
+        public String AccountName {get; set;}
     }
     
 }
