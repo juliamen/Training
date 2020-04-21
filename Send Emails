@@ -1,0 +1,20 @@
+global class SendPurchaseOrderEmail {
+    WebService static void sendEmail(String poId) {
+        List<Messaging.SingleEmailMessage> emails = new List<Messaging.SingleEmailMessage>();
+        
+        String theTemplate = [SELECT Id FROM EmailTemplate WHERE DeveloperName = 'Purchase_Order_With_Items'].Id;
+        User theUser = [SELECT Id FROM User WHERE Name = 'user name goes here'];
+
+        Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
+        
+        mail.setSaveAsActivity(false);
+        mail.setTemplateId(theTemplate);
+        mail.setWhatId(poId);
+        mail.setTargetObjectId(theUser.Id);
+        mail.setToAddresses(new String[] { 'TestUser@salesforce.com' ,'abc@test.com'});  //add other emails here.
+        emails.add(mail);
+        
+        Messaging.sendEmail(emails);      
+     
+      }    
+}
