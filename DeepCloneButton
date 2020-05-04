@@ -1,0 +1,85 @@
+//Lightning component
+
+<aura:component controller="DeepClone" implements="flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId,force:lightningQuickAction" access="global" >
+	<aura:handler name="init" value="{!this}" action="{!c.doInit}" />
+    <aura:attribute name="recordId" type="Id" />
+	<center><b> Success! Your object has been cloned!</b></center>    
+  
+</aura:component>
+
+//Controller
+
+({
+    doInit : function(component, event, helper) {
+        var recordId = component.get("v.recordId");
+        if(recordId!=undefined){
+            var action = component.get("c.clone");
+            action.setParams({
+                recordId: recordId
+            });
+            action.setCallback(this, function(response){
+                var state = response.getState();
+                
+                if (state === "SUCCESS") {
+                    $A.get('e.force:refreshView').fire();
+                   console.log(state);
+                } else if (state === "ERROR") {
+                    var errors = response.getError();
+                    alert('Error! It was not possible to clone the records. Error state ' + state);
+                    if (errors) {
+                        if (errors[0] && errors[0].message) {
+                            console.log("Error message: " + 
+                                        errors[0].message);
+                        }
+                    } else {
+                        console.log("Unknown error");
+                    }
+                }
+                
+            });
+            
+            $A.enqueueAction(action);
+        }
+    }
+})
+
+//Apex Controller Class
+
+public class DeepClone {
+    @AuraEnabled
+    public static void clone(String recordId){
+        
+        List<Support_Worker__c>  supWork = new List<Support_Worker__c>();
+        List<Risk_Assessment__c>  Ras = new List<Risk_Assessment__c>();
+        
+        //get current record and clone it
+        Support_Plan__c sp = [Select id, name, Service_User__c from Support_Plan__c where id =: recordId];
+        Support_Plan__c spNew = sp.clone(false, true);
+        insert spNew;
+              
+        //get risk assessment related to support plan
+        for(Risk_Assessment__c ra: [select id, name, Support_Plan__c from Risk_Assessment__c where Support_Plan__c =: recordId]){
+            Risk_Assessment__c newRa = ra.clone(false, true);
+            //set parent ref
+            newRa.Support_Plan__c = spNew.Id;
+            Ras.add(newRa);
+        }
+        if(Ras.size()>0){
+            insert Ras;
+        }
+        
+        //get support worker related to support plan
+        for(Support_Worker__c sw: [select id, name, Email__c, Phone__c, Active__c, Birthdate__c, Support_Plan__c from Support_Worker__c where Support_Plan__c =: recordId]){
+            Support_Worker__c newSw = sw.clone(false, true);
+            //set parent ref
+            newSw.Support_Plan__c = spNew.Id;
+            supWork.add(newSw);
+        }
+        if(supWork.size()>0){
+            insert supWork;
+        }
+
+        
+    }
+	
+}
