@@ -1,0 +1,92 @@
+//Lightning Component
+
+<aura:component controller="SendEmail" implements="flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId,force:lightningQuickAction" access="global" >
+    
+    <aura:handler name="init" value="{!this}" action="{!c.doInit}" />
+    <aura:attribute name="recordId" type="Id" />
+    <center><b>Your emails have been sent!</b></center>
+</aura:component>
+
+//Controller
+
+({
+    doInit : function(component, event, helper) {
+        var recordId = component.get("v.recordId");
+        if(recordId != undefined){
+            
+            var action = component.get("c.send");
+            action.setParams({
+                recordId: recordId
+            });
+            action.setCallback(this, function(response){
+                var state = response.getState();
+                
+                if (state === "SUCCESS") {
+                    $A.get('e.force:refreshView').fire();
+                    console.log(state);
+                } else if (state === "ERROR") {
+                    var errors = response.getError();
+                    alert('Error! It was not possible to send the emails. Error state ' + state);
+                    if (errors) {
+                        if (errors[0] && errors[0].message) {
+                            console.log("Error message: " + 
+                                        errors[0].message);
+                        }
+                    } else {
+                        console.log("Unknown error");
+                    }
+                }
+                
+            });
+            
+            $A.enqueueAction(action);
+        }
+    }
+    
+})
+
+//Apex Class Controller
+
+public class SendEmail {
+@AuraEnabled
+    public static void send(String recordId){
+        Support_Plan__c sp = [Select id, name from Support_Plan__c where id =: recordId];
+        
+        //create list of emails
+        List<Messaging.SingleEmailMessage> emailList = NEW List<Messaging.SingleEmailMessage>();
+        List<String> emailsAddr = new List<String>();
+        
+        //iterarte over emails of workers associated to the plan and insert them into a list
+        for(Support_Worker__c supW : [select id, Email__c,  Support_Plan__c from Support_Worker__c where  Support_Plan__c =: recordId]){
+            String address = supW.Email__c;
+            system.debug(address);
+            emailsAddr.add(address);
+        }
+        system.debug('list'+ emailsAddr);
+        
+        //if you select email template to add Support_Plan__c
+        //String template = [SELECT Id FROM EmailTemplate WHERE DeveloperName = 'Support_Plan'].Id;
+        //system.debug('template'+ template);
+        //email.setTemplateId(template);
+        //email.targetObjectId()
+        
+        //create the email and send the list of them out
+        
+        String mailBody = '';
+        mailBody = '<html>'+ 
+            +'<body><p>Dear User, '+  
+            '<br><br>This email is in regard of your Support Plan.We have updated our plan as per follow....'+
+             '<br><br>If you have any question please contact us.Stay safe!'+
+            '<br><br>Kind Regards,<br>The Team' +
+            +'</p></body></html>';
+        system.debug('MailBody---' + mailbody);
+        
+        Messaging.SingleEmailMessage email = new Messaging.SingleEmailMessage();
+        email.setToAddresses(emailsAddr);
+        email.setSubject('Support Plan Informations' );
+      	email.setHtmlBody(mailBody);  
+        email.setSaveAsActivity(false);
+        emailList.add(email);
+		Messaging.sendEmail(emailList);      
+    }
+}
